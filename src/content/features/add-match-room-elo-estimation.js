@@ -1,24 +1,13 @@
 /** @jsx h */
 import { h } from 'dom-chef'
-import select from 'select-dom'
 import {
-  getTeamElements,
   getRoomId,
-  getTeamMemberElements,
-  getNicknameElement,
-  getFactionDetails,
   mapMatchNicknamesToPlayersMemoized
 } from '../helpers/match-room'
-import {
-  getQuickMatch,
-  getMatch,
-  getUser,
-  getSelf
-} from '../helpers/faceit-api'
+import { getMatch, getSelf } from '../helpers/faceit-api'
 import {
   hasFeatureAttribute,
-  setFeatureAttribute,
-  setStyle
+  setFeatureAttribute
 } from '../helpers/dom-element'
 import {
   estimateRatingChangeMemoized,
@@ -28,17 +17,47 @@ import storage from '../../shared/storage'
 
 const FEATURE_ATTRIBUTE = 'elo-estimation'
 
-export default async parent => {
-  const { teamElements, isTeamV1Element } = getTeamElements(parent)
+const setText = (factionElm, changes, opponentAverageElo, eloDiff) => {
+  const { gain, loss } = changes
+  const eloElement = (
+    <div
+      style={{
+        fontSize: '12px',
+        textAlign: 'center',
+        color: '#666',
+        marginTop: '10px',
+        textTransform: 'uppercase'
+      }}
+    >
+      AVG ELO: {opponentAverageElo} / Diff:{' '}
+      {eloDiff > 0 ? `+${eloDiff}` : eloDiff}
+      <br />
+      WIN: +{-loss} / LOSS: -{gain}
+    </div>
+  )
+  factionElm.append(eloElement)
+}
 
-  const roomId = getRoomId()
-  const match = isTeamV1Element
-    ? await getQuickMatch(roomId)
-    : await getMatch(roomId)
+export const getFactionItem = async (team, factionName) => {
+  const elos = team.roster.map(member => member.elo)
+  const totalElo = elos.reduce((partialSum, a) => partialSum + a, 0)
+  const averageElo = Math.round(totalElo / 5)
+  const winProbability = team.stats.winProbability
 
-  if (!match || match.state === 'FINISHED') {
-    return
+  return {
+    factionName,
+    averageElo,
+    winProbability
   }
+}
+
+export default async parent => {
+  const roomId = getRoomId()
+  const match = await getMatch(roomId)
+
+  // If (!match || match.state === 'FINISHED') {
+  //   return
+  // }
 
   const nicknamesToPlayers = mapMatchNicknamesToPlayersMemoized(match)
   const { matchRoomFocusMode } = await storage.getAll()
@@ -48,70 +67,10 @@ export default async parent => {
     return
   }
 
-  let factions = await Promise.all(
-    teamElements.map(async teamElement => {
-      const factionDetails = getFactionDetails(teamElement, isTeamV1Element)
+  let factions = []
 
-      if (!factionDetails) {
-        return
-      }
-
-      const { factionName } = factionDetails
-      const factionElo = match[`${factionName}Elo`]
-
-      let averageElo
-
-      if (factionElo) {
-        averageElo = factionElo
-      } else {
-        const memberElements = getTeamMemberElements(teamElement)
-
-        let memberElos = await Promise.all(
-          memberElements.map(async memberElement => {
-            const nicknameElement = getNicknameElement(
-              memberElement,
-              isTeamV1Element
-            )
-
-            if (!nicknameElement) {
-              return
-            }
-
-            const nickname = nicknameElement.textContent
-            const player = nicknamesToPlayers[nickname]
-
-            let userId
-            if (isTeamV1Element) {
-              userId = player.guid
-            } else {
-              userId = player.id
-            }
-
-            const user = await getUser(userId)
-
-            if (!user) {
-              return
-            }
-
-            const { game } = match
-            const elo = user.games[game].faceitElo || null
-
-            return elo
-          })
-        )
-
-        memberElos = memberElos.filter(m => Boolean(m))
-
-        const totalElo = memberElos.reduce((acc, curr) => acc + curr, 0)
-        averageElo = Math.floor(totalElo / memberElos.length)
-      }
-
-      return {
-        factionName,
-        averageElo
-      }
-    })
-  )
+  factions.push(await getFactionItem(match.teams.faction1, 'faction1'))
+  factions.push(await getFactionItem(match.teams.faction2, 'faction2'))
 
   factions = factions.filter(faction => Boolean(faction))
 
@@ -119,26 +78,26 @@ export default async parent => {
     return
   }
 
-  let eloElements = factions.map((faction, i) => {
+  parent = document.querySelector('#parasite-container').shadowRoot
+  const factionNameElement1 = parent.querySelectorAll('h6.sc-OFGBB')[1]
+
+  const factionNameElement2 = parent.querySelectorAll('h6.sc-OFGBB')[0]
+
+  // Let eloElements = factions.map((faction, i) => {
+  factions.filter((faction, i) => {
     const { factionName, averageElo } = faction
 
-    const factionNameElement = select(
-      `h2[ng-bind*="${
-        isTeamV1Element
-          ? `match.${factionName}_nickname`
-          : `vm.currentMatch.match.teams.${factionName}.name`
-      }"]`,
-      parent
-    )
-
     if (
-      !factionNameElement ||
-      hasFeatureAttribute(FEATURE_ATTRIBUTE, factionNameElement)
+      (!factionNameElement2 ||
+        hasFeatureAttribute(FEATURE_ATTRIBUTE, factionNameElement2)) &&
+      (!factionNameElement1 ||
+        hasFeatureAttribute(FEATURE_ATTRIBUTE, factionNameElement1))
     ) {
       return null
     }
 
-    setFeatureAttribute(FEATURE_ATTRIBUTE, factionNameElement)
+    if (i === 0) setFeatureAttribute(FEATURE_ATTRIBUTE, factionNameElement1)
+    if (i === 1) setFeatureAttribute(FEATURE_ATTRIBUTE, factionNameElement2)
 
     const opponentAverageElo = factions[1 - i].averageElo
 
@@ -164,64 +123,58 @@ export default async parent => {
 
     const eloDiff = averageElo - opponentAverageElo
 
-    const eloElement = (
-      <div className="text-muted text-md" style={{ 'margin-top': 6 }}>
-        Avg. Elo: {averageElo} / Diff: {eloDiff > 0 ? `+${eloDiff}` : eloDiff}
-        <br />
-        <span>Est. Gain: +{gain}</span> / <span>Est. Loss: {loss}</span>
-      </div>
-    )
+    if (i === 0)
+      setText(factionNameElement1, { gain, loss }, opponentAverageElo, eloDiff)
+    if (i === 1)
+      setText(factionNameElement2, { gain, loss }, opponentAverageElo, eloDiff)
 
-    factionNameElement.style.lineHeight = 'normal'
-    factionNameElement.append(eloElement)
+    // Const factionIndex = i + 1
+    // const scoreElement = select(
+    //   isTeamV1Element
+    //     ? `span[ng-bind="match.score${factionIndex}"]`
+    //     : `span[ng-bind="vm.currentMatch.match.results.score.faction${factionIndex}"]`
+    // )
 
-    const factionIndex = i + 1
-    const scoreElement = select(
-      isTeamV1Element
-        ? `span[ng-bind="match.score${factionIndex}"]`
-        : `span[ng-bind="vm.currentMatch.match.results.score.faction${factionIndex}"]`
-    )
+    // if (scoreElement && !hasFeatureAttribute(FEATURE_ATTRIBUTE, scoreElement)) {
+    //   setFeatureAttribute(FEATURE_ATTRIBUTE, scoreElement)
 
-    if (scoreElement && !hasFeatureAttribute(FEATURE_ATTRIBUTE, scoreElement)) {
-      setFeatureAttribute(FEATURE_ATTRIBUTE, scoreElement)
+    //   const points = parseFloat(scoreElement.textContent) === 1 ? gain : loss
 
-      const points = parseFloat(scoreElement.textContent) === 1 ? gain : loss
+    //   const pointsElement = (
+    //     <div className="text-lg">{points > 0 ? `+${points}` : points}</div>
+    //   )
 
-      const pointsElement = (
-        <div className="text-lg">{points > 0 ? `+${points}` : points}</div>
-      )
+    //   setStyle(scoreElement, 'margin-top: -41px')
+    //   scoreElement.append(pointsElement)
+    // }
 
-      setStyle(scoreElement, 'margin-top: -41px')
-      scoreElement.append(pointsElement)
-    }
-
-    return eloElement
+    // return eloElement
+    return factions[i]
   })
 
-  eloElements = eloElements.filter(eloElement => Boolean(eloElement))
+  // EloElements = eloElements.filter(eloElement => Boolean(eloElement))
 
-  if (eloElements.length !== 2) {
-    return
-  }
+  // if (eloElements.length !== 2) {
+  // }
 
-  const observer = new MutationObserver(() => {
-    const firstResultElement = select('div[class*="MatchScore__Result"')
+  // const observer = new MutationObserver(() => {
+  //   const firstResultElement = select('div[class*="MatchScore__Result"')
 
-    if (!firstResultElement) {
-      return
-    }
+  //   if (!firstResultElement) {
+  //     return
+  //   }
 
-    const result = firstResultElement.textContent
+  //   const result = firstResultElement.textContent
 
-    if (result === 'W' || result === 'L') {
-      eloElements.forEach(eloElement => {
-        eloElement.remove()
-      })
-      observer.disconnect()
-    }
-  })
+  //   if (result === 'W' || result === 'L') {
+  //     eloElements.forEach(eloElement => {
+  //       eloElement.remove()
+  //     })
+  //     observer.disconnect()
+  //   }
+  // })
 
-  const matchResultElement = select('div[class*=VersusTeamStatus__Holder]')
+  // Const matchResultElement = select('div[class*=VersusTeamStatus__Holder]')
 
-  observer.observe(matchResultElement, { childList: true, subtree: true })
+  // observer.observe(matchResultElement, { childList: true, subtree: true })
 }
