@@ -9,10 +9,10 @@ import {
   ACTION_FETCH_VIPS,
   ACTION_FETCH_FACEIT_API
 } from '../shared/constants'
-import { fetchBan, fetchVips } from './api.js'
+import { fetchBan, fetchVips } from './api'
 import faceitApi from './faceit-api'
 
-browser.runtime.onMessage.addListener(async (message) => {
+browser.runtime.onMessage.addListener(async message => {
   if (!message) {
     return
   }
@@ -78,16 +78,18 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
 
     const { version } = browser.runtime.getManifest()
 
-    const versionDiffType = semverDiff(previousVersion, version)
+    const versionDiffType = semverDiff(previousVersion ?? '1.0.0', version)
     if (versionDiffType === null || versionDiffType === 'patch') {
       return
     }
 
-    const changelogUrl = changelogs[version]
+    const changelogUrl = changelogs[version as keyof typeof changelogs]
 
     if (changelogUrl) {
-      const { updateNotificationType, updateNotifications } =
-        await storage.getAll()
+      const {
+        updateNotificationType,
+        updateNotifications
+      } = await storage.getAll()
 
       switch (updateNotificationType) {
         // Tab
@@ -101,9 +103,11 @@ browser.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
 
         // Badge
         case UPDATE_NOTIFICATION_TYPES[1]: {
+          // @ts-ignore
           updateNotifications.push(version)
           await storage.set({ updateNotifications })
           browser.browserAction.setBadgeText({
+            // @ts-ignore
             text: updateNotifications.length.toString()
           })
           browser.browserAction.setBadgeBackgroundColor({ color: '#f50' })

@@ -10,7 +10,7 @@ const config = {
   entry: {
     content: './content/index.js',
     popup: './popup/index.js',
-    background: './background/index.js'
+    background: './background/index.ts'
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
