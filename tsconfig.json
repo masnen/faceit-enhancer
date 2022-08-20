@@ -1,11 +1,21 @@
 {
   "compilerOptions": {
-    "outDir": "./dist/",
-    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "esModuleInterop": true,
+    "noUnusedLocals": true,
     "noImplicitAny": true,
-    "jsx": "react",
+    "declarationDir": "dist/types",
+    "declaration": true,
+    "target": "es2015",
+    "module": "es2015",
+    "strict": true,
     "allowJs": true,
-    "target": "es5",
-    "moduleResolution": "Node"
-  }
+    "checkJs": false,
+    "moduleResolution": "node"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

@@ -1,17 +1,19 @@
 import React from 'react'
 import browser from 'webextension-polyfill'
 import storage from '../shared/storage'
-import changelogs from '../changelogs'
+import changelogs from '../changelogs.json'
 import { MATCH_ROOM_VETO_LOCATION_REGIONS } from '../shared/settings'
-import AppBar from './components/app-bar'
-import Drawer from './components/drawer'
-import General, { GENERAL } from './sections/general'
-import Automation, { AUTOMATION } from './sections/automation'
-import Appearance, { APPEARANCE } from './sections/appearance'
-import VetoPreferences, { VETO_PREFERENCES } from './sections/veto-preferences'
-import Notifications, { NOTIFICATIONS } from './sections/notifications'
-import Help, { HELP } from './sections/help'
-import About, { ABOUT } from './sections/about'
+import AppBar from './components/app-bar.js'
+import Drawer from './components/drawer.js'
+import General, { GENERAL } from './sections/general.js'
+import Automation, { AUTOMATION } from './sections/automation.js'
+import Appearance, { APPEARANCE } from './sections/appearance.js'
+import VetoPreferences, {
+  VETO_PREFERENCES
+} from './sections/veto-preferences.js'
+import Notifications, { NOTIFICATIONS } from './sections/notifications.js'
+import Help, { HELP } from './sections/help.js'
+import About, { ABOUT } from './sections/about.js'
 
 export default class App extends React.Component {
   state = {
@@ -29,9 +31,9 @@ export default class App extends React.Component {
     }))
   }
 
-  onClickUpdateNotification = async versionClicked => {
+  onClickUpdateNotification = async (versionClicked) => {
     const updateNotifications = this.state.options.updateNotifications.filter(
-      updateVersion => updateVersion !== versionClicked
+      (updateVersion) => updateVersion !== versionClicked
     )
 
     await storage.set({ updateNotifications })
@@ -48,7 +50,7 @@ export default class App extends React.Component {
     })
   }
 
-  getUpdateOption = option => newValue => {
+  getUpdateOption = (option) => (newValue) => {
     this.setState(({ options }) => {
       const updatedOption = { [option]: newValue }
       storage.set(updatedOption)
@@ -76,19 +78,19 @@ export default class App extends React.Component {
       key: itemsKey,
       items: getItems ? getItems(options) : options[itemsKey],
       onSorted: onSorted
-        ? newItems =>
+        ? (newItems) =>
             onSorted(newItems, options, this.getUpdateOption(itemsKey))
         : this.getUpdateOption(itemsKey)
     }
   }
 
-  getHandleSwitchOption = option => () => {
+  getHandleSwitchOption = (option) => () => {
     const updateOption = this.getUpdateOption(option)
     const newValue = !this.state.options[option]
     updateOption(newValue)
   }
 
-  getSwitchProps = option => ({
+  getSwitchProps = (option) => ({
     key: option,
     checked: this.state.options[option],
     onClick: this.getHandleSwitchOption(option)
