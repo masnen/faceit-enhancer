@@ -52,6 +52,8 @@ export const DEFAULTS = {
   notifyMatchRoomAutoVetoLocations: true,
   notifyMatchRoomAutoVetoMaps: true,
   updateNotificationType: 'tab',
+  // TODO: Remove
+  // @ts-ignore
   updateNotifications: [],
   teamRosterPlayersInfo: true
 }
