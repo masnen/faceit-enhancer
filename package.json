@@ -27,7 +27,7 @@
     "lodash": "^4.17.10",
     "mem": "^4.0.0",
     "p-memoize": "^1.0.0",
-    "p-retry": "^1.0.0",
+    "p-retry": "^5.1.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "react-sortable-hoc": "^0.6.8",
@@ -38,6 +38,8 @@
     "webextension-polyfill": "^0.2.1"
   },
   "devDependencies": {
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
     "ava": "^0.25.0",
     "babel-core": "^6.26.0",
     "babel-eslint": "^8.2.2",
@@ -66,6 +68,8 @@
     "semver": "^6.0.0",
     "sinon": "^4.4.2",
     "svg-inline-loader": "^0.8.2",
+    "ts-loader": "^8.4.0",
+    "typescript": "^4.7.4",
     "uglifyjs-webpack-plugin": "^1.2.2",
     "web-ext": "^4.2.0",
     "web-ext-submit": "^4.2.0",

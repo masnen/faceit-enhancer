@@ -16,6 +16,9 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].js'
   },
+  resolve: {
+    extensions: ['.ts', '.js', '.json', '.svg']
+  },
   module: {
     rules: [
       {
@@ -50,6 +53,11 @@ module.exports = {
             ]
           }
         }
+      },
+      {
+        test: /\.ts$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
       },
       {
         test: /\.svg$/,

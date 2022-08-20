@@ -1,13 +1,13 @@
-import pRetry from 'p-retry'
+import pRetry, { AbortError } from 'p-retry'
 
 const BASE_URL = 'https://api.faceit.com'
 
-export default async function faceitApi(path, options) {
+export default async function faceitApi(path: string, options?: RequestInit) {
   const response = await pRetry(
     () =>
       fetch(`${BASE_URL}${path}`, options).then(res => {
         if (res.status === 404) {
-          throw new pRetry.AbortError(res.statusText)
+          throw new AbortError(res.statusText)
         } else if (!res.ok) {
           throw new Error(res.statusText)
         }
